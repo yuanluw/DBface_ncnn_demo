@@ -146,11 +146,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="detect.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="myutils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="dbface.bin" />
     <None Include="dbface.param" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="detect.h" />
+    <ClInclude Include="myutils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
