@@ -4,8 +4,8 @@
 
 detect::detect(float thresh, float iou)
 {
-	net.load_param("dbface.param");
-	net.load_model("dbface.bin");
+	net.load_param("dbface16.param");
+	net.load_model("dbface16.bin");
 	THRESHOLD = thresh;
 	IOU = iou;
 }
@@ -13,8 +13,10 @@ detect::detect(float thresh, float iou)
 
 vector<Obj> detect::getObjs(Mat img)
 {
+	clock_t startTime, endTime;
 	img = util.pad(img);
 	ncnn::Mat in = norm(img);
+	startTime = clock();
 	ncnn::Extractor ex = net.create_extractor();//forward
 	ex.input("0", in);
 	ex.set_num_threads(4);
@@ -23,7 +25,8 @@ vector<Obj> detect::getObjs(Mat img)
 	ex.extract("hm", hm);
 	ex.extract("pool_hm", hmPool);
 	ex.extract("tlrb", tlrb);
-
+	endTime = clock();
+	cout << "process Time : " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
 	int hmWeight = hm.w;
 	hm = hm.reshape(hm.c * hm.h * hm.w);
 	hmPool = hmPool.reshape(hmPool.c * hmPool.w * hmPool.h);

@@ -146,15 +146,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="arcFace.cpp" />
     <ClCompile Include="detect.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="myutils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="arcFace.bin" />
+    <None Include="arcFace.param" />
     <None Include="dbface.bin" />
     <None Include="dbface.param" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="arcFace.h" />
     <ClInclude Include="detect.h" />
     <ClInclude Include="myutils.h" />
   </ItemGroup>

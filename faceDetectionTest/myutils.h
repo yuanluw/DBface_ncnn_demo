@@ -38,5 +38,8 @@ public:
 	float getIou(Box a, Box b);
 	float myExp(float v);
 	void drawBbox(Mat& img, Obj o, Scalar textColor, Scalar boxColor, Scalar landColor);
+	float getSimilarity(const vector<float>& lhs, const vector<float>& rhs);
+private:
+	float getMold(const vector<float>& vec);
 };
 

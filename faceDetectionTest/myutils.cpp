@@ -99,3 +99,22 @@ void myutils::drawBbox(Mat& img, Obj o, Scalar textColor, Scalar boxColor, Scala
 		circle(img, p, 2, landColor, 1);
 	}
 }
+
+//get ||vector||
+float myutils::getMold(const vector<float>& vec) {   
+	int n = vec.size();
+	float sum = 0.0;
+	for (int i = 0; i < n; ++i)
+		sum += vec[i] * vec[i];
+	return sqrt(sum);
+}
+
+//cosine similarity
+float myutils::getSimilarity(const vector<float>& lhs, const vector<float>& rhs) {
+	int n = lhs.size();
+	assert(n == rhs.size());
+	float tmp = 0.0;  
+	for (int i = 0; i < n; ++i)
+		tmp += lhs[i] * rhs[i];
+	return tmp / (getMold(lhs) * getMold(rhs));
+}
