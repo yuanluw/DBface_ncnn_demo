@@ -5,8 +5,7 @@ vector<Obj> myutils::nms(vector<Obj> objs, float iou)
 	if (objs.size() == 0) {
 		return objs;
 	}
-	sort(objs.begin(), objs.end(), [](Obj a, Obj b) { return a.score < b.score; });
-
+	sort(objs.begin(), objs.end(), [](Obj a, Obj b) { return a.score > b.score; });
 	vector<Obj> keep;
 	int* flag = new int[objs.size()]();
 	for (int i = 0; i < objs.size(); i++) {
@@ -88,7 +87,8 @@ void myutils::drawBbox(Mat& img, Obj o, Scalar textColor, Scalar boxColor, Scala
 	rectangle(img, P1, P2, boxColor, 2, 8);
 
 	char destination[100];
-	sprintf_s(destination, "%2.3f", score);
+
+	sprintf_s(destination, "%4.3f", score);
 	string text = "score:" + (string)destination;
 	putText(img, text, P1, 0, 0.4, textColor);
 
@@ -96,7 +96,7 @@ void myutils::drawBbox(Mat& img, Obj o, Scalar textColor, Scalar boxColor, Scala
 		Point p;
 		p.x = lan.x[i];
 		p.y = lan.y[i];
-		circle(img, p, 2, landColor, 1);
+		circle(img, p, 2, landColor, 2);
 	}
 }
 

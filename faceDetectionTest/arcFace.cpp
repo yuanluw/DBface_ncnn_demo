@@ -11,7 +11,7 @@ vector<float> arcFace::getFeature(Mat img)
 	ncnn::Mat in = norm(img);
 	ncnn::Extractor ex = net.create_extractor();//forward
 	ex.input("0", in);
-	ex.set_num_threads(4);
+	//ex.set_num_threads(4);
 	ncnn::Mat feature;
 	ex.extract("feature", feature);
 	vector<float> f;

@@ -4,6 +4,7 @@
 #include<opencv2/highgui/highgui.hpp>
 #include<opencv2/opencv.hpp>
 #include<vector>
+#include <windows.h>
 
 #include"detect.h"
 #include"myutils.h"
@@ -12,82 +13,97 @@
 using namespace std;
 using namespace cv;
 
+myutils util;
 
 float THRESHOLD = 0.4;
 float IOU = 0.5;
 
-myutils util;
+vector<Obj> objs;
+volatile bool calculateFlag = false;
+vector<float> saveFeature;
 
-
-float getSimilarity(vector<Obj> objs, Mat img, int flag);
-
+float getSimilarity(vector<Obj> objs, Mat img, int flag, arcFace featureNet);
+DWORD WINAPI calculate(LPVOID lpParamter);
+void readSaveFeature();
 
 
 int main() {
 
-	cout << "load model==>" << endl;
-	detect d(THRESHOLD, IOU);
-	clock_t startTime, endTime;
-	VideoCapture capture(0);
+	int choice = 0;
+	cout << "input choice:" << endl;
+	cout << "0 photo test" << endl;
+	cout << "1 video test" << endl;
+	cin >> choice;
+	readSaveFeature();
+	if (choice) {
+		VideoCapture capture(0);
+		Mat frame, tempFrame;
+		
+		while (true) {
 
-	while (true) {
-		Mat frame;
-		capture >> frame;
-		cout << frame.size << endl;
-		startTime = clock();
-		vector<Obj> objs = d.getObjs(frame);
-		endTime = clock();
-		cout << "Totle Time : " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
-		//cout << "obj size:" << objs.size() << endl;
-		//cout << "draw bbox==>" << endl;
-		for (int i = 0; i < objs.size(); i++) {
-			util.drawBbox(frame, objs[i], Scalar(255, 0, 0), Scalar(0, 255, 0), Scalar(0, 0, 255));
+			if (!calculateFlag) {
+				if (objs.size() > 0) {
+					for (int i = 0; i < objs.size(); i++)
+						util.drawBbox(tempFrame, objs[i], Scalar(255, 0, 0), Scalar(0, 255, 0), Scalar(0, 0, 255));
+					imshow("detectFace.jpg", tempFrame);
+				}
+				capture >> tempFrame;
+				calculateFlag = true;
+				CreateThread(NULL, 0, calculate, &tempFrame, 0, NULL);
+			}
+			else {
+				capture >> frame;
+				imshow("read", frame);
+			}
+			waitKey(1);
 		}
-
-		imshow("read", frame);
-
-		waitKey(1);
 	}
+	else {
+		Mat img = imread("matt3.JPG");
+		float similarity;
+		detect* d = new detect(THRESHOLD, IOU);
+		arcFace*featureNet = new arcFace();
+		cout << "model forward==>" << endl;
+		objs = d->getObjs(img);
+		delete d;
+		cout << "detect face size: " << objs.size() << endl;
+		if (objs.size() == 1) {
+			int flag = 0; //计算当前图片与已保存特征的相似度
+			float simi = getSimilarity(objs, img, flag, *featureNet);
+			cout << "sim" << simi << endl;
+		}
+		for (int i = 0; i < objs.size(); i++) {
+			util.drawBbox(img, objs[i], Scalar(255, 0, 0), Scalar(0, 255, 0), Scalar(0, 0, 255));
+		}
+		imwrite("detectFace.jpg", img);
+		cout << "end============>" << endl;
+	}
+	
 
-	
-	//G:\\迅雷下载\\Mul.ti-Task Fac.al Lan.dmark (MT.FL) dat.a.set\\AFLW\\0002-0926-image28054.jpg
-	Mat img = imread("matt.JPG");
-	cout << "raw shape: " << img.size() << endl;
-
-	cout << "model forward==>" << endl;
-	vector<Obj> objs = d.getObjs(img);
-	cout << "obj size:" << objs.size() << endl;
-	float similarity;
-	if (objs.size() == 1)
-		similarity = getSimilarity(objs, img, 0);
-	
-	
-	//imwrite("detectFace.jpg", img);
-	cout << "end============>" << endl;
-	waitKey(0);
 	destroyAllWindows();
 	return 0;
 }
 
 
-float getSimilarity(vector<Obj> objs, Mat img, int flag) {
+//flag为1 代表计算特征向量并保存
+//flag为0 代表计算相似度
+float getSimilarity(vector<Obj> objs, Mat img, int flag, arcFace featureNet) {
 	
 	Box b = objs[0].box;
-	int x = max(b.x - img.size[0] / 10, 0);
-	int y = max(b.y - img.size[1] / 10, 0);
-	int w = min(b.r - x + img.size[0] / 10, img.size[0]);
-	int h = min(b.b - y + img.size[1] / 10, img.size[1]);
+	cout << b.x << " " << b.y << " " << b.r << " " << b.b << endl;
+	int x = max(b.x - img.size[1] / 10, 0);
+	int y = max(b.y - img.size[0] / 10, 0);
+	
+	int w = min(b.r - x + img.size[1] / 10, img.size[1]-x-1);
+	int h = min(b.b - y + img.size[0] / 10, img.size[0]-y-1);
 	Rect rect(x, y, w, h);
 	Mat imgRoi = img(rect);
 	resize(imgRoi, imgRoi, Size(128, 128));
-	cout << imgRoi.size() << endl;
-	imshow("test", imgRoi);
-	arcFace featureNet;
-
+	
 	vector<float> feature = featureNet.getFeature(imgRoi);
 	if (flag) {
 		ofstream featureDict;
-		featureDict.open("featuredict.txt", ios::app | ios::in);
+		featureDict.open("featuredict.txt",  ios::in);
 		for (int i = 0; i < feature.size(); i++) {
 			featureDict << feature[i] << " ";
 		}
@@ -95,16 +111,44 @@ float getSimilarity(vector<Obj> objs, Mat img, int flag) {
 		return 0.0;
 	}
 	else {
-		fstream featureDict;
-		featureDict = fstream("featuredict.txt", ios::in);
-		vector<float> saveFeature;
-		float temp;
-		for (int i = 0; i < 512; i++) {
-			featureDict >> temp;
-			saveFeature.push_back(temp);
-		}
 		float similarity = util.getSimilarity(feature, saveFeature);
-		cout << similarity << endl;
 		return similarity;
+	}
+}
+
+//
+DWORD WINAPI calculate(LPVOID lpParamter)
+{
+	float similarity;
+	detect *d = new detect(THRESHOLD, IOU);
+	arcFace *featureNet = new arcFace();
+	clock_t startTime, endTime;
+	Mat* frame = (Mat*)lpParamter;
+	startTime = clock();
+	objs = d->getObjs(*frame);
+	endTime = clock();
+	cout << "detect face Time : " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+	delete d;
+	startTime = clock();
+	if (objs.size() == 1) {
+		similarity = getSimilarity(objs, *frame, 0, *featureNet);
+		cout << "similarity: " << similarity << endl;
+	}
+	endTime = clock();
+	cout << "calculate similarity Time : " << (double)(endTime - startTime) / CLOCKS_PER_SEC << "s" << endl;
+	//线程执行完毕
+	calculateFlag = false;
+	return 0L;
+}
+
+
+void readSaveFeature()
+{
+	fstream featureDict;
+	featureDict = fstream("featuredict.txt", ios::in);
+	float temp;
+	for (int i = 0; i < 512; i++) {
+		featureDict >> temp;
+		saveFeature.push_back(temp);
 	}
 }
